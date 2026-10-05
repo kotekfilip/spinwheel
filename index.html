@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#181a24">
+<meta name="description" content="Štyri možnosti. Jedno zatočenie. Auto, Zubar, Palec alebo Soplik?">
+<title>Koleso šťastia</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100svh;background:#181a24;color:#f5f2e9;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center;padding:28px 20px}main{width:min(100%,520px);text-align:center}.eyebrow{font-size:11px;letter-spacing:.24em;font-weight:750;color:#b8b6c6;text-transform:uppercase}h1{font-size:clamp(32px,7vw,46px);letter-spacing:-.055em;margin:12px 0 8px;line-height:1.1}.subtitle{color:#b8b6c6;font-size:15px;margin:0 0 30px}.stage{position:relative;width:min(100%,410px);margin:auto;padding:12px;border-radius:50%;background:#282b39;box-shadow:0 22px 65px #0005,inset 0 0 0 1px #ffffff12}.wheel{display:block;width:100%;height:auto;filter:drop-shadow(0 2px 2px #0003);will-change:transform}.pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:2;width:30px;height:40px;background:#fff9e7;clip-path:polygon(0 0,100% 0,100% 35%,50% 100%,0 35%);filter:drop-shadow(0 3px 3px #0008)}.hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:#222532;border:7px solid #fff6;box-shadow:0 3px 10px #0004;display:grid;place-items:center;font-size:22px;color:#fff}.result{min-height:95px;padding:25px 0 15px}.result-label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.17em;color:#b8b6c6;margin-bottom:5px}#result{font-size:27px;font-weight:800;letter-spacing:-.025em}button{width:min(100%,330px);border:0;border-radius:16px;padding:18px 24px;background:#dfff83;color:#1c2412;font:800 17px system-ui;cursor:pointer;box-shadow:0 4px 0 #91aa48;transition:background .15s,transform .15s}button:hover:not(:disabled){background:#e8ffab;transform:translateY(-1px)}button:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #91aa48}button:focus-visible{outline:3px solid #fff;outline-offset:6px}button:disabled{cursor:wait;opacity:.65}.footnote{font-size:12px;color:#9492a6;margin:22px 0 0}text{transform-box:fill-box;transform-origin:center;font-family:system-ui,sans-serif;font-weight:800;font-size:25px;fill:#202334;paint-order:stroke;stroke-width:0}noscript p{color:#ffaaa1}@media(max-width:360px){body{padding:24px 16px}.subtitle{font-size:13px}.hub{width:44px;height:44px}.result{padding-top:20px}}@media(prefers-reduced-motion:reduce){button{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<div class="stage">
+<div class="pointer" aria-hidden="true"></div>
+<svg class="wheel" id="wheel" viewBox="0 0 400 400" role="img" aria-label="Koleso so štyrmi rovnakými časťami: Auto, Zubar, Palec, Soplik">
+<path d="M200 200 L200 0 A200 200 0 0 1 400 200 Z" fill="#a3dfce"/>
+<path d="M200 200 L400 200 A200 200 0 0 1 200 400 Z" fill="#c6b4ef"/>
+<path d="M200 200 L200 400 A200 200 0 0 1 0 200 Z" fill="#f7bf8b"/>
+<path d="M200 200 L0 200 A200 200 0 0 1 200 0 Z" fill="#f28e9d"/>
+<path d="M200 0V400 M0 200H400" fill="none" stroke="#202334" stroke-opacity=".13" stroke-width="2"/>
+<text x="281" y="121" text-anchor="middle" dominant-baseline="middle">Auto</text>
+<text x="281" y="281" text-anchor="middle" dominant-baseline="middle">Zubar</text>
+<text x="119" y="281" text-anchor="middle" dominant-baseline="middle">Palec</text>
+<text x="119" y="121" text-anchor="middle" dominant-baseline="middle">Soplik</text>
+</svg>
+<div class="hub" aria-hidden="true">✦</div>
+</div>
+<div class="result" role="status" aria-live="polite" aria-atomic="true"><span id="result"></span></div>
+<button id="spin" type="button">Roztočiť koleso ↗</button>
+<noscript><p>Na roztočenie kolesa zapni JavaScript v prehliadači.</p></noscript>
+</main>
+<script>
+'use strict';
+const options = ['Auto', 'Zubar', 'Palec', 'Soplik'];
+const wheel = document.getElementById('wheel');
+const button = document.getElementById('spin');
+const result = document.getElementById('result');
+const labels = Array.from(wheel.querySelectorAll('text'));
+let rotation = 0;
+let spinning = false;
+function randomUint() {
+  const value = new Uint32Array(1);
+  crypto.getRandomValues(value);
+  return value[0];
+}
+button.addEventListener('click', async () => {
+  if (spinning) return;
+  spinning = true;
+  button.disabled = true;
+  button.textContent = 'Točí sa…';
+  result.textContent = '…';
+  // Four outcomes divide the 32-bit range equally: no modulo bias.
+  const winner = randomUint() % options.length;
+  // Land inside the chosen slice, at least 20 degrees from either edge.
+  const landingAngle = winner * 90 + 20 + (randomUint() / 4294967296) * 50;
+  const target = (360 - landingAngle) % 360;
+  const distance = (target - rotation + 360) % 360;
+  const end = rotation + 360 * 6 + distance;
+  const duration = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 4600;
+  const animations = [];
+  try {
+    const animation = wheel.animate(
+      [{ transform: `rotate(${rotation}deg)` }, { transform: `rotate(${end}deg)` }],
+      { duration, easing: 'cubic-bezier(0.12, 0.72, 0.12, 1)', fill: 'forwards' }
+    );
+    animations.push(animation);
+    for (const label of labels) {
+      animations.push(label.animate(
+        [{ transform: `rotate(${-rotation}deg)` }, { transform: `rotate(${-end}deg)` }],
+        { duration, easing: 'cubic-bezier(0.12, 0.72, 0.12, 1)', fill: 'forwards' }
+      ));
+    }
+    await Promise.all(animations.map(item => item.finished));
+    wheel.style.transform = `rotate(${target}deg)`;
+
+  } catch {
+    // Also show the chosen outcome if animation is unsupported or interrupted.
+    wheel.style.transform = `rotate(${target}deg)`;
+  }
+  labels.forEach(label => { label.style.transform = `rotate(${-target}deg)`; });
+  animations.forEach(animation => animation.cancel());
+  rotation = target;
+  result.textContent = options[winner];
+  button.textContent = 'Roztočiť znova ↗';
+  button.disabled = false;
+  spinning = false;
+});
+</script>
+</body>
+</html>
